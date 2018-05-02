@@ -1,0 +1,92 @@
+*&---------------------------------------------------------------------*
+*& Include ZACSB_GCM_TOP                                     PoolMóds.        ZACSB_GCM
+*&
+*&---------------------------------------------------------------------*
+
+PROGRAM  zacsb_gcm.
+
+TABLES:  zacsb_reservas,
+         zacsb_doutores.
+
+TYPES: BEGIN OF ty_consulta,
+            data      TYPE zacsb_reservas-data,
+            hora      TYPE zacsb_reservas-hora,
+            crm       TYPE zacsb_reservas-crm,
+            doutor    TYPE zacsb_doutores-doutor,
+            espec     TYPE zacsb_doutores-espec,
+            paciente  TYPE zacsb_reservas-paciente,
+            obs       TYPE zacsb_reservas-obs,
+         END OF ty_consulta.
+
+
+TYPES: BEGIN OF ty_doutor,
+            crm       TYPE zacsb_doutores-crm,
+            doutor    TYPE zacsb_doutores-doutor,
+            espec     TYPE zacsb_doutores-espec,
+       END OF ty_doutor.
+
+
+TYPES: BEGIN OF ty_medico,
+            crm       TYPE zacsb_doutores-crm,
+            doutor    TYPE zacsb_doutores-doutor,
+       END OF ty_medico.
+
+TYPES: BEGIN OF ty_crm,
+            crm       TYPE zacsb_doutores-crm,
+       END   OF ty_crm.
+
+DATA:  it_consulta  TYPE TABLE OF ty_consulta,
+       it_doutores  TYPE TABLE OF ty_doutor,
+       it_medico    TYPE TABLE OF ty_crm,
+       it_dados_c   TYPE TABLE OF ty_consulta.
+
+DATA:
+       wa_medico    TYPE          ty_medico,
+       wa_dados_c   TYPE          ty_consulta,
+       wa_dados_m   TYPE          ty_doutor,
+       st_layout    TYPE          lvc_s_layo.
+
+* Objetos
+DATA: o_alv        TYPE REF TO cl_gui_alv_grid,
+      o_container  TYPE REF TO cl_gui_custom_container,
+      o_alv2       TYPE REF TO cl_gui_alv_grid,
+      o_container2 TYPE REF TO cl_gui_custom_container.
+
+DATA: text01(50)   TYPE c,
+      text02(50)   TYPE c,
+      textcon(100) TYPE c,
+      flag_c       TYPE c,
+      flag_m       TYPE c.
+
+*----------------------------------------------------------------------*
+*       CLASS lcl_event_handler DEFINITION
+*----------------------------------------------------------------------*
+*
+*----------------------------------------------------------------------*
+CLASS lcl_event_handler DEFINITION.
+  PUBLIC SECTION.
+    METHODS: on_user_command FOR EVENT double_click
+              OF cl_gui_alv_grid
+              IMPORTING e_row.
+ENDCLASS.                    "lcl_event_handler DEFINITION
+
+*----------------------------------------------------------------------*
+*       CLASS lcl_event_handler IMPLEMENTATION
+*----------------------------------------------------------------------*
+*
+*----------------------------------------------------------------------*
+CLASS lcl_event_handler IMPLEMENTATION.
+  METHOD on_user_command.
+    IF flag_c = 'X'.
+      PERFORM zf_select_con_alv USING e_row.
+    ELSE.
+      IF flag_m = 'X'.
+        PERFORM: zf_select_md_alv USING e_row.
+      ELSE.
+        PERFORM: zf_select_crm_alv USING e_row.
+      ENDIF.
+    ENDIF.
+  ENDMETHOD.                    "on_user_command
+ENDCLASS.                    "lcl_event_handler IMPLEMENTATION&lt;/font&gt;
+
+DATA: r_event_handler TYPE REF TO lcl_event_handler.

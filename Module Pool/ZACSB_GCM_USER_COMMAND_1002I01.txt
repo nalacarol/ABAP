@@ -1,0 +1,21 @@
+*----------------------------------------------------------------------*
+***INCLUDE ZACSB_GCM_USER_COMMAND_1002I01 .
+*----------------------------------------------------------------------*
+*&---------------------------------------------------------------------*
+*&      Module  USER_COMMAND_1002  INPUT
+*&---------------------------------------------------------------------*
+*       PAI - PARA TELA 1002 - Tela de Consultas Medicas
+*----------------------------------------------------------------------*
+MODULE USER_COMMAND_1002 INPUT.
+
+    CASE sy-ucomm.
+    WHEN 'BACK'.
+      LEAVE TO SCREEN 1001.
+    WHEN 'EXIT'.
+      LEAVE TO SCREEN 0.
+    WHEN 'CANCEL'.
+      LEAVE PROGRAM.
+    WHEN OTHERS.
+  ENDCASE.
+
+ENDMODULE.                 " USER_COMMAND_1002  INPUT

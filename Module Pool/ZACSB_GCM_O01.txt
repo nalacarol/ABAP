@@ -1,0 +1,26 @@
+*&---------------------------------------------------------------------*
+*&  Include           ZACSB_GCM_O01
+*&---------------------------------------------------------------------*
+*&---------------------------------------------------------------------*
+*&      Module  STATUS_1001  OUTPUT
+*&---------------------------------------------------------------------*
+*       PBO - PARA TELA 1001 - TELA INICIAL
+*----------------------------------------------------------------------*
+MODULE status_1001 OUTPUT.
+
+  SET PF-STATUS 'STATUS1001'.
+  SET TITLEBAR 'TITULO1001'.
+
+  LOOP AT SCREEN.
+    IF screen-name = 'WA_MEDICO-DOUTOR'.
+      IF wa_medico IS INITIAL.
+        screen-active = '0'.
+        MODIFY SCREEN.
+      ELSE.
+        screen-active = '1'.
+        MODIFY SCREEN.
+      ENDIF.
+    ENDIF.
+  ENDLOOP.
+
+ENDMODULE.                 " STATUS_1001  OUTPUT

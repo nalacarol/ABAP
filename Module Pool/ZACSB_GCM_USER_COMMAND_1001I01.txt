@@ -1,0 +1,66 @@
+*----------------------------------------------------------------------*
+***INCLUDE ZACSB_GCM_USER_COMMAND_1001I01 .
+*----------------------------------------------------------------------*
+*&---------------------------------------------------------------------*
+*&      Module  USER_COMMAND_1001  INPUT
+*&---------------------------------------------------------------------*
+*       PAI - PARA TELA 1001 - TELA INICIAL
+*----------------------------------------------------------------------*
+
+MODULE user_command_1001 INPUT.
+  CASE sy-ucomm.
+    WHEN 'EXEC'.
+      PERFORM: zf_verifica_crm.
+    WHEN 'SAVE'.
+      IF zacsb_reservas-data     IS NOT INITIAL AND
+         zacsb_reservas-hora     IS NOT INITIAL AND
+         zacsb_reservas-crm      IS NOT INITIAL AND
+         zacsb_reservas-paciente IS NOT INITIAL.
+        textcon = 'Você tem certeza que quer cadastrar essa consulta?'.
+        PERFORM: zf_verifica_crm.
+        PERFORM: zf_verifica_dados_c.
+        IF text01 NE 'Essa consulta já existe.'.
+          PERFORM: zf_popup_confirm.
+        ENDIF.
+      ELSE.
+        text01 = 'Coloque todas as informações necessarias'.
+        text02 = 'Data, Hora, CRM e Paciente'.
+        PERFORM: zf_popup_informe.
+      ENDIF.
+    WHEN 'DEL'.
+      IF zacsb_reservas-data     IS NOT INITIAL AND
+         zacsb_reservas-hora     IS NOT INITIAL AND
+         zacsb_reservas-crm      IS NOT INITIAL AND
+         zacsb_reservas-paciente IS NOT INITIAL.
+        textcon = 'Você tem certeza que quer deletar essa consulta?'.
+        PERFORM: zf_verifica_dados_c.
+        IF text01 NE 'Essa consulta não existe.'.
+          PERFORM: zf_popup_confirm.
+        ELSE.
+          text01 = ''.
+          text02 = ''.
+        ENDIF.
+      ELSE.
+        text01 = 'Coloque todas as informações necessarias'.
+        text02 = 'Data, Hora, CRM e Paciente'.
+        PERFORM: zf_popup_informe.
+      ENDIF.
+    WHEN 'BACK'.
+      LEAVE TO SCREEN 0.
+    WHEN 'EXIT'.
+      LEAVE TO SCREEN 0.
+    WHEN 'CANCEL'.
+      LEAVE PROGRAM.
+    WHEN 'NVMD'.
+      LEAVE TO SCREEN 1003.
+    WHEN 'CMD'.
+      PERFORM : zf_alv_consultas.
+      LEAVE TO SCREEN 1002.
+    WHEN 'MD'.
+      flag_m = ' '.
+      PERFORM : zf_alv_medicos.
+      LEAVE TO SCREEN 1004.
+    WHEN OTHERS.
+  ENDCASE.
+
+ENDMODULE.                 " USER_COMMAND_1001  INPUT

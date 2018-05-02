@@ -1,0 +1,56 @@
+*----------------------------------------------------------------------*
+***INCLUDE ZACSB_GCM_USER_COMMAND_1003I01 .
+*----------------------------------------------------------------------*
+*&---------------------------------------------------------------------*
+*&      Module  USER_COMMAND_1003  INPUT
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+MODULE user_command_1003 INPUT.
+
+  CASE sy-ucomm.
+    WHEN 'SAVE'.
+      IF zacsb_doutores-crm     IS NOT INITIAL AND
+         zacsb_doutores-doutor    IS NOT INITIAL AND
+         zacsb_doutores-espec      IS NOT INITIAL.
+        textcon = 'Você tem certeza que quer cadastrar este médico?'.
+        PERFORM: zf_verifica_dados_m.
+        IF text01 NE 'Esse medico já existe.'.
+          PERFORM: zf_popup_confirm.
+        ENDIF.
+      ELSE.
+        text01 = 'Coloque todas as informações necessarias'.
+        text02 = 'CRM, Nome e Especialidade do Medico'.
+        PERFORM: zf_popup_informe.
+      ENDIF.
+    WHEN 'MD'.
+      flag_m = 'X'.
+      PERFORM : zf_alv_medicos.
+      LEAVE TO SCREEN 1004.
+    WHEN 'DEL1'.
+      IF zacsb_doutores-crm   IS NOT INITIAL AND
+        zacsb_doutores-doutor IS NOT INITIAL AND
+        zacsb_doutores-espec  IS NOT INITIAL.
+        textcon = 'Você tem certeza que quer deletar esse medico? Ao deleta-lo as consultas também seram deletadas'.
+        PERFORM: zf_verifica_dados_m.
+        IF text01 NE 'Essa médico não existe.'.
+          PERFORM: zf_popup_confirm.
+        ELSE.
+          text01 = ''.
+          text02 = ''.
+        ENDIF.
+      ELSE.
+        text01 = 'Coloque todas as informações necessarias'.
+        text02 = 'Data, Hora, CRM e Paciente'.
+        PERFORM: zf_popup_informe.
+      ENDIF.
+    WHEN 'BACK'.
+      LEAVE TO SCREEN 1001.
+    WHEN 'EXIT'.
+      LEAVE TO SCREEN 0.
+    WHEN 'CANCEL'.
+      LEAVE PROGRAM.
+    WHEN OTHERS.
+  ENDCASE.
+
+ENDMODULE.                 " USER_COMMAND_1003  INPUT

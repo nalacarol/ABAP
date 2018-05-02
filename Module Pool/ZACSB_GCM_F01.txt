@@ -1,0 +1,454 @@
+
+*&---------------------------------------------------------------------*
+*&  Include           ZACSB_GCM_F01
+*&---------------------------------------------------------------------*
+*&---------------------------------------------------------------------*
+*&      Form  ZF_POPUP
+*&---------------------------------------------------------------------*
+*       Exibe um POP-UP na tela 1003 ao Salvar
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+  FORM zf_popup_confirm.
+    DATA: p_wa_answer(8) TYPE c.
+    CALL FUNCTION 'POPUP_TO_CONFIRM'
+      EXPORTING
+        titlebar              = 'POP-UP de confirmação'
+        text_question         = textcon
+        text_button_1         = 'Sim'(002)
+        text_button_2         = 'Não'(005)
+        default_button        = '1'
+        display_cancel_button = ''
+      IMPORTING
+        answer                = p_wa_answer.
+    IF p_wa_answer = 1.
+      IF textcon = 'Você tem certeza que quer cadastrar este médico?'.
+        PERFORM: zf_insert_medico.
+      ELSEIF textcon = 'Você tem certeza que quer cadastrar essa consulta?'.
+        PERFORM: zf_insert_consulta.
+      ELSEIF textcon = 'Você tem certeza que quer deletar essa consulta?'.
+        PERFORM: zf_delete_consulta.
+      ELSEIF  textcon = 'Você tem certeza que quer deletar esse medico? Ao deleta-lo as consultas também seram deletadas'.
+        PERFORM: zf_delete_medico.
+      ELSE.
+        LEAVE TO SCREEN 1003.
+        zacsb_doutores-crm = zacsb_reservas-crm.
+      ENDIF.
+    ENDIF.
+  ENDFORM.                    " ZF_POPUP
+*&---------------------------------------------------------------------*
+*&      Form  zf_alv_consultas
+*&---------------------------------------------------------------------*
+*       Exibe um ALV de consultas na tela 1002
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+  FORM zf_alv_consultas.
+
+    PERFORM : zf_select_consultas.
+
+    flag_c = 'X'.
+
+* Se o ALV ja foi instanciado...
+    IF o_alv IS BOUND.
+* Metodo da classe de alv atribuida ao objeto o_alv para limpar o objeto.
+      o_alv->free( ).
+    ENDIF.
+
+* Se o Objeto não foi instaciando
+    IF o_container IS NOT BOUND.
+*  Faz a criação do objecto do container passando o nome do Custom control para o parametro de exportação.
+      CREATE OBJECT o_container
+        EXPORTING
+          container_name = 'CC_CM_ALV'.
+    ENDIF.
+
+*  Faz a criação do objeto do ALV passando o nome do Container que receberá o ALV
+    CREATE OBJECT o_alv
+      EXPORTING
+        i_parent = o_container.
+
+    CALL METHOD o_alv->register_edit_event
+      EXPORTING
+        i_event_id = cl_gui_alv_grid=>mc_evt_enter.
+
+    CREATE OBJECT r_event_handler.
+    SET HANDLER r_event_handler->on_user_command FOR o_alv.
+
+
+*  Alimenta a estrutura de Layout do alv.
+    PERFORM zf_layout_alv.
+
+    CALL METHOD o_alv->set_table_for_first_display
+      EXPORTING
+        i_structure_name = 'ZACSB_CONSULTA'
+        is_layout        = st_layout
+      CHANGING
+        it_outtab        = it_consulta.
+
+  ENDFORM.                    " F_ALV
+*&---------------------------------------------------------------------*
+*&      Form  ZF_SELECT_CONSULTAS
+*&---------------------------------------------------------------------*
+*       Faz o Select do ALV da tela 1002
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+  FORM zf_select_consultas.
+
+    SELECT zacsb_reservas~data
+           zacsb_reservas~hora
+           zacsb_reservas~crm
+           zacsb_doutores~doutor
+           zacsb_doutores~espec
+           zacsb_reservas~paciente
+           zacsb_reservas~obs
+        INTO TABLE it_consulta
+        FROM zacsb_reservas
+          INNER JOIN zacsb_doutores
+                ON zacsb_doutores~crm = zacsb_reservas~crm.
+
+  ENDFORM.                    " ZF_SELECT_CONSULTAS
+*&---------------------------------------------------------------------*
+*&      Form  ZF_LAYOUT_ALV
+*&---------------------------------------------------------------------*
+*       Layout dos ALVs
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+  FORM zf_layout_alv.
+
+    st_layout-cwidth_opt = 'X'.
+
+  ENDFORM.                    " ZF_LAYOUT_ALV
+*&---------------------------------------------------------------------*
+*&      Form  zf_insert_consulta
+*&---------------------------------------------------------------------*
+*       Faz um insert na tabela de reservas
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+  FORM zf_insert_consulta.
+
+    INSERT INTO zacsb_reservas VALUES zacsb_reservas.
+    text01 = 'Nova Consulta Gravada com Sucesso'.
+    PERFORM: zf_popup_informe.
+    CLEAR zacsb_reservas.
+
+  ENDFORM.                    " zf_insert_consulta
+*&---------------------------------------------------------------------*
+*&      Form  zf_insert_medico
+*&---------------------------------------------------------------------*
+*       Faz um insert na tabela de doutores
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+  FORM zf_insert_medico.
+
+    INSERT INTO zacsb_doutores VALUES zacsb_doutores.
+    text01 = 'Novo Medico Gravado com Sucesso'.
+    PERFORM: zf_popup_informe.
+    CLEAR zacsb_doutores.
+
+  ENDFORM.                    " zf_insert_medico
+
+*&---------------------------------------------------------------------*
+*&      Form  ZF_POPUP_INFORME
+*&---------------------------------------------------------------------*
+*       Abre um POPUP para informar algo.
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+  FORM zf_popup_informe.
+
+    CALL FUNCTION 'POPUP_TO_DISPLAY_TEXT'
+      EXPORTING
+        titel        = 'POPUP TO INFORME'
+        textline1    = text01
+        textline2    = text02
+        start_column = 25
+        start_row    = 6.
+
+  ENDFORM.                    " ZF_POPUP_INFORME
+*&---------------------------------------------------------------------*
+*&      Form  ZF_ALV_MEDICOS
+*&---------------------------------------------------------------------*
+*       Exibe um ALV de medicos na tela 1004
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+  FORM zf_alv_medicos .
+
+    PERFORM : zf_select_medicos.
+
+    flag_c = ' '.
+
+* Se o ALV ja foi instanciado...
+    IF o_alv2 IS BOUND.
+* Metodo da classe de alv atribuida ao objeto o_alv para limpar o objeto.
+      o_alv2->free( ).
+    ENDIF.
+
+* Se o Objeto não foi instaciando
+    IF o_container2 IS NOT BOUND.
+*  Faz a criação do objecto do container passando o nome do Custom control para o parametro de exportação.
+      CREATE OBJECT o_container2
+        EXPORTING
+          container_name = 'CC_MD_ALV'.
+    ENDIF.
+
+*  Faz a criação do objeto do ALV passando o nome do Container que receberá o ALV
+    CREATE OBJECT o_alv2
+      EXPORTING
+        i_parent = o_container2.
+
+
+    CALL METHOD o_alv2->register_edit_event
+      EXPORTING
+        i_event_id = cl_gui_alv_grid=>mc_evt_enter.
+
+    CREATE OBJECT r_event_handler.
+    SET HANDLER r_event_handler->on_user_command FOR o_alv2.
+
+*  Alimenta a estrutura de Layout do alv.
+    PERFORM zf_layout_alv.
+
+    CALL METHOD o_alv2->set_table_for_first_display
+      EXPORTING
+        i_structure_name = 'ZACSB_DOUTORES'
+        is_layout        = st_layout
+      CHANGING
+        it_outtab        = it_doutores.
+
+  ENDFORM.                    " ZF_ALV_MEDICOS
+*&---------------------------------------------------------------------*
+*&      Form  ZF_SELECT_MEDICOS
+*&---------------------------------------------------------------------*
+*       Faz o select para o AVL dos medicos
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+  FORM zf_select_medicos.
+
+    SELECT crm
+           doutor
+           espec
+        INTO TABLE it_doutores
+        FROM zacsb_doutores.
+
+    SORT it_doutores BY crm.
+
+  ENDFORM.                    " ZF_SELECT_MEDICOS
+
+*&---------------------------------------------------------------------*
+*&      Form  ZF_SELECT_CRM
+*&---------------------------------------------------------------------*
+*       Faz o select após duplo click para preencher o CRM.
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+  FORM zf_select_crm_alv USING p_row.
+
+    SELECT crm
+      INTO TABLE it_medico
+      FROM zacsb_doutores.
+
+    READ TABLE it_medico
+               INDEX p_row
+               INTO zacsb_reservas-crm.
+
+    LEAVE TO SCREEN 1001.
+
+  ENDFORM.                    " ZF_SELECT_CRM_ALV
+*&---------------------------------------------------------------------*
+*&      Form  ZF_VERIFICA_CRM
+*&---------------------------------------------------------------------*
+*       Verifica se o CRM existe
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+  FORM zf_verifica_crm.
+    CLEAR wa_medico.
+    IF zacsb_reservas-crm IS NOT INITIAL.
+      SELECT SINGLE crm
+                    doutor
+        FROM zacsb_doutores
+        INTO wa_medico
+        WHERE crm = zacsb_reservas-crm.
+      IF wa_medico IS INITIAL.
+        textcon = 'Esse CRM não existe. Quer cadastrar esse medico?'.
+        PERFORM: zf_popup_confirm.
+      ENDIF.
+    ENDIF.
+  ENDFORM.                    " ZF_VERIFICA_CRM
+*&---------------------------------------------------------------------*
+*&      Form  ZF_VERIFICA_DADOS_C
+*&---------------------------------------------------------------------*
+*        Verifica se a consulta existe
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+  FORM zf_verifica_dados_c.
+    CLEAR wa_dados_c.
+    IF zacsb_reservas-data     IS NOT INITIAL AND
+       zacsb_reservas-hora     IS NOT INITIAL AND
+       zacsb_reservas-crm      IS NOT INITIAL AND
+       zacsb_reservas-paciente IS NOT INITIAL.
+      IF it_doutores IS INITIAL.
+        PERFORM: zf_select_medicos.
+        PERFORM: zf_verifica_dados_c.
+      ELSE.
+        SELECT SINGLE zacsb_reservas~data
+                      zacsb_reservas~hora
+                      zacsb_reservas~crm
+                      zacsb_doutores~doutor
+                      zacsb_doutores~espec
+                      zacsb_reservas~paciente
+                      zacsb_reservas~obs
+            INTO wa_dados_c
+            FROM zacsb_doutores
+              INNER JOIN zacsb_reservas
+                    ON zacsb_doutores~crm = zacsb_reservas~crm           AND
+                       zacsb_reservas~hora = zacsb_reservas-hora         AND
+                       zacsb_reservas~crm = zacsb_reservas-crm           AND
+                       zacsb_reservas~paciente = zacsb_reservas-paciente AND
+                       zacsb_reservas~obs = zacsb_reservas-obs.
+        IF wa_dados_c IS INITIAL.
+          text01 = 'Essa consulta não existe.'.
+          text02 = 'Verifique se os dados estão corretos'.
+          PERFORM: zf_popup_informe.
+        ELSEIF textcon = 'Você tem certeza que quer cadastrar essa consulta?'.
+          text01 = 'Essa consulta já existe.'.
+          text02 = 'Verifique se os dados estão corretos'.
+          PERFORM: zf_popup_informe.
+        ENDIF.
+      ENDIF.
+    ENDIF.
+  ENDFORM.                    " ZF_VERIFICA_DADOS_C
+*&---------------------------------------------------------------------*
+*&      Form  ZF_SELECT_CON_ALV
+*&---------------------------------------------------------------------*
+*       Faz o select para o duplo-click no avl de consultas
+*----------------------------------------------------------------------*
+*      -->P_E_ROW  text
+*----------------------------------------------------------------------*
+  FORM zf_select_con_alv USING p_row.
+
+    READ TABLE it_consulta
+               INDEX p_row
+               INTO wa_dados_c.
+
+    zacsb_reservas-data     = wa_dados_c-data.
+    zacsb_reservas-hora     = wa_dados_c-hora.
+    zacsb_reservas-crm      = wa_dados_c-crm.
+    zacsb_doutores-doutor   = wa_dados_c-doutor.
+    zacsb_doutores-espec    = wa_dados_c-espec.
+    zacsb_reservas-paciente = wa_dados_c-paciente.
+    zacsb_reservas-obs      = wa_dados_c-obs.
+
+    LEAVE TO SCREEN 1001.
+
+  ENDFORM.                    " ZF_SELECT_CON_ALV
+*&---------------------------------------------------------------------*
+*&      Form  ZF_DELETE_CONSULTA
+*&---------------------------------------------------------------------*
+*       Deleta uma consulta
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+  FORM zf_delete_consulta.
+
+    DELETE FROM zacsb_reservas
+                WHERE data     = zacsb_reservas-data     AND
+                      hora     = zacsb_reservas-hora     AND
+                      crm      = zacsb_reservas-crm      AND
+                      paciente = zacsb_reservas-paciente AND
+                      obs      = zacsb_reservas-obs.
+
+    text01 = 'Consulta deletada com sucesso.'.
+    PERFORM: zf_popup_informe.
+
+  ENDFORM.                    " ZF_DELETE_CONSULTA
+*&---------------------------------------------------------------------*
+*&      Form  ZF_SELECT_MD_ALV
+*&---------------------------------------------------------------------*
+*       Faz o select para o duplo-click no avl de medicos
+*----------------------------------------------------------------------*
+*      -->P_E_ROW  text
+*----------------------------------------------------------------------*
+  FORM zf_select_md_alv  USING    p_row.
+
+    READ TABLE it_doutores
+               INDEX p_row
+               INTO wa_dados_m.
+
+    zacsb_doutores-crm      = wa_dados_m-crm.
+    zacsb_doutores-doutor   = wa_dados_m-doutor.
+    zacsb_doutores-espec    = wa_dados_m-espec.
+
+    LEAVE TO SCREEN 1003.
+
+  ENDFORM.                    " ZF_SELECT_MD_ALV
+*&---------------------------------------------------------------------*
+*&      Form  ZF_VERIFICA_DADOS_M
+*&---------------------------------------------------------------------*
+*        Verifica se o medico existe
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+  FORM zf_verifica_dados_m.
+    CLEAR wa_dados_m.
+    SELECT SINGLE crm
+                  doutor
+                  espec
+      FROM zacsb_doutores
+      INTO wa_dados_m
+      WHERE crm    = zacsb_doutores-crm    AND
+            doutor = zacsb_doutores-doutor AND
+            espec  = zacsb_doutores-espec.
+    IF wa_dados_m IS INITIAL.
+      text01 = 'Essa médico não existe.'.
+      text02 = 'Verifique se os dados estão corretos'.
+      PERFORM: zf_popup_informe.
+    ELSEIF textcon = 'Você tem certeza que quer cadastrar este médico?'.
+      text01 = 'Esse medico já existe.'.
+      text02 = 'Verifique se os dados estão corretos'.
+      PERFORM: zf_popup_informe.
+  ENDIF.
+ENDFORM.                    " ZF_VERIFICA_DADOS_M
+*&---------------------------------------------------------------------*
+*&      Form  ZF_DELETE_MEDICO
+*&---------------------------------------------------------------------*
+*       Deleta medico e todas as consultas deste
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+  FORM zf_delete_medico .
+
+    DELETE FROM zacsb_doutores
+                WHERE crm    = zacsb_doutores-crm    AND
+                      doutor = zacsb_doutores-doutor AND
+                      espec  = zacsb_doutores-espec.
+
+    DELETE FROM zacsb_reservas
+               WHERE crm    = zacsb_doutores-crm.
+
+    text01 = 'Medico deletado com sucesso.'.
+    PERFORM: zf_popup_informe.
+
+  ENDFORM.                    " ZF_DELETE_MEDICO
