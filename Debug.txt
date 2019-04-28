@@ -1,0 +1,4 @@
+[FUNCTION]
+Command=/h
+Title=Debugger
+Type=SystemCommand
